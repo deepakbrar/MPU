@@ -1,0 +1,5 @@
+{
+  "name": "Salesforce Monthly Plan Uploader",
+  "description": "A bulk task planning tool designed to validate and format Salesforce task uploads for monthly planning via n8n workflows.",
+  "requestFramePermissions": []
+}
