@@ -144,12 +144,13 @@ const App: React.FC = () => {
     }
   }, [taskList]);
 
-  // Determine which fields to show based on task type
-  const showMonthPicker = taskType === TaskTypeEnum.MonthlyPlan || taskType === TaskTypeEnum.PortfolioPlan;
-  const showPortfolioSelector = taskType === TaskTypeEnum.PortfolioPlan;
-  const showOwnerAndHotel = taskType === TaskTypeEnum.MonthlyPlan;
-  const isOwnerTask = taskType === TaskTypeEnum.OwnerExternal || taskType === TaskTypeEnum.OwnerInternal;
-
+// Determine which fields to show based on task type
+const showMonthPicker = taskType === TaskTypeEnum.MonthlyPlan || taskType === TaskTypeEnum.PortfolioPlan;
+const showPortfolioSelector = taskType === TaskTypeEnum.PortfolioPlan;
+const isOwnerTask = taskType === TaskTypeEnum.OwnerExternal || taskType === TaskTypeEnum.OwnerInternal;
+// Show Owner and Hotel for Monthly Plan AND Owner tasks
+const showOwnerAndHotel = taskType === TaskTypeEnum.MonthlyPlan || isOwnerTask;;
+  
   // Get unique brands from hotelMappings for portfolio options
   const brandOptions = [...new Set(hotelMappings.map(m => m.brand).filter(Boolean))];
 
