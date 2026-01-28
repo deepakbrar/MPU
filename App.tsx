@@ -5,24 +5,37 @@ import { PlanList } from './components/PlanList';
 import { Footer } from './components/Footer';
 import { fetchGoogleSheetData } from './services/googleSheetsService';
 import { uploadTasksToGoogleSheets } from './services/googleSheetsUpload';
-import { SalesPerson, Hotel, PlanTask } from './types';
-import { Users, Building2, Loader2, AlertCircle, RefreshCw, CalendarDays } from 'lucide-react';
+import { SalesPerson, Hotel, PlanTask, Portfolio, HotelMapping, TaskTypeEnum } from './types';
+import { Users, Building2, Loader2, AlertCircle, RefreshCw, CalendarDays, Briefcase, FolderKanban } from 'lucide-react';
 
 const App: React.FC = () => {
+  // Task Type Selection
+  const [taskType, setTaskType] = useState<TaskTypeEnum | ''>('');
+  
   const [selectedUser, setSelectedUser] = useState<SalesPerson | null>(null);
   const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [selectedPortfolio, setSelectedPortfolio] = useState<Portfolio | null>(null);
   const [taskList, setTaskList] = useState<PlanTask[]>([]);
   
-  // Data from Google Sheets (mandatory)
+  // Data from Google Sheets
   const [users, setUsers] = useState<SalesPerson[]>([]);
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [subjects, setSubjects] = useState<string[]>([]);
+  const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
+  const [hotelMappings, setHotelMappings] = useState<HotelMapping[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Generate next 12 months for the month picker
+  // Reset dependent fields when task type changes
+  useEffect(() => {
+    setSelectedUser(null);
+    setSelectedHotel(null);
+    setSelectedMonth('');
+    setSelectedPortfolio(null);
+  }, [taskType]);
+
   const getMonthOptions = () => {
     const months = [];
     const currentDate = new Date();
@@ -38,7 +51,6 @@ const App: React.FC = () => {
 
   const monthOptions = getMonthOptions();
 
-  // Load data from Google Sheets
   const loadData = async () => {
     try {
       setLoading(true);
@@ -46,7 +58,6 @@ const App: React.FC = () => {
       
       const data = await fetchGoogleSheetData();
       
-      // Validate that we got data
       if (!data.users || data.users.length === 0) {
         throw new Error('No users found in Google Sheets. Please add data to the "Users" tab.');
       }
@@ -60,29 +71,31 @@ const App: React.FC = () => {
       setUsers(data.users);
       setHotels(data.hotels);
       setSubjects(data.subjects);
+      setPortfolios(data.portfolios || []);
+      setHotelMappings(data.hotelMappings || []);
       
       console.log('✅ Successfully loaded from Google Sheets:', {
         users: data.users.length,
         hotels: data.hotels.length,
         subjects: data.subjects.length,
+        portfolios: data.portfolios?.length || 0,
+        hotelMappings: data.hotelMappings?.length || 0,
       });
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load data from Google Sheets';
       console.error('❌ Google Sheets Error:', err);
       setError(errorMessage);
-      
-      // Don't set any fallback data - keep arrays empty
       setUsers([]);
       setHotels([]);
       setSubjects([]);
-      
+      setPortfolios([]);
+      setHotelMappings([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Load on mount
   useEffect(() => {
     loadData();
   }, []);
@@ -101,7 +114,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Replace CSV export with Google Sheets upload
   const handleUploadToSheets = useCallback(async () => {
     if (taskList.length === 0) {
       alert('No tasks to upload. Please add tasks first.');
@@ -116,17 +128,14 @@ const App: React.FC = () => {
 
     try {
       setUploading(true);
-
       const result = await uploadTasksToGoogleSheets(taskList);
       
       if (result.success) {
         alert(`✅ Success! ${result.rowsAdded} tasks uploaded to Google Sheets.\n\nCheck the "Tasks" tab in your spreadsheet.`);
-        // Clear the task list after successful upload
         setTaskList([]);
       } else {
         alert(`❌ Upload failed: ${result.error}\n\nPlease check your Google Apps Script configuration.`);
       }
-      
     } catch (error) {
       console.error('Upload error:', error);
       alert('❌ Failed to upload tasks. Please try again or check your configuration.');
@@ -135,7 +144,15 @@ const App: React.FC = () => {
     }
   }, [taskList]);
 
-  // Loading state
+  // Determine which fields to show based on task type
+  const showMonthPicker = taskType === TaskTypeEnum.MonthlyPlan || taskType === TaskTypeEnum.PortfolioPlan;
+  const showPortfolioSelector = taskType === TaskTypeEnum.PortfolioPlan;
+  const showOwnerAndHotel = taskType === TaskTypeEnum.MonthlyPlan;
+  const isOwnerTask = taskType === TaskTypeEnum.OwnerExternal || taskType === TaskTypeEnum.OwnerInternal;
+
+  // Get unique brands from hotelMappings for portfolio options
+  const brandOptions = [...new Set(hotelMappings.map(m => m.brand).filter(Boolean))];
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -148,7 +165,6 @@ const App: React.FC = () => {
     );
   }
 
-  // Error state - block app usage if Google Sheets fails
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -157,19 +173,14 @@ const App: React.FC = () => {
             <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mx-auto mb-4">
               <AlertCircle className="w-8 h-8 text-red-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">
-              Unable to Load Data
-            </h2>
-            <p className="text-gray-600 text-center mb-6">
-              {error}
-            </p>
+            <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">Unable to Load Data</h2>
+            <p className="text-gray-600 text-center mb-6">{error}</p>
             <div className="bg-gray-50 rounded-lg p-4 mb-6 text-sm text-gray-700">
               <p className="font-semibold mb-2">Please check:</p>
               <ul className="list-disc list-inside space-y-1">
                 <li>Google Sheets API key is valid</li>
-                <li>Spreadsheet is shared publicly (Anyone with link → Viewer)</li>
-                <li>Spreadsheet has tabs: Users, Hotels, Subjects</li>
-                <li>Each tab has data starting from row 2</li>
+                <li>Spreadsheet is shared publicly</li>
+                <li>Required tabs: Users, Hotels, Subjects, Portfolios, HotelMapping</li>
               </ul>
             </div>
             <button
@@ -196,7 +207,7 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <p className="text-green-800 text-sm font-medium">
-              Sync active • Data source configured • {users.length} Users, {hotels.length} Hotels, {subjects.length} Subjects
+              Sync active • Data source configured • {users.length} Users, {hotels.length} Hotels, {subjects.length} Subjects, {portfolios.length} Portfolios
             </p>
           </div>
         </div>
@@ -208,103 +219,170 @@ const App: React.FC = () => {
         </h2>
       
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Users size={16} />
-                Task Owner (Sales Person)
-              </label>
-              <select
-                className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
-                onChange={(e) => {
-                  const user = users.find(u => u.id === e.target.value);
-                  setSelectedUser(user || null);
-                }}
-                value={selectedUser?.id || ''}
-              >
-                <option value="">-- Select Owner --</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Building2 size={16} />
-                Related Hotel (WhatId)
-              </label>
-              <select
-                className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
-                onChange={(e) => {
-                  const hotel = hotels.find(h => h.id === e.target.value);
-                  setSelectedHotel(hotel || null);
-                }}
-                value={selectedHotel?.id || ''}
-              >
-                <option value="">-- Select Hotel --</option>
-                {hotels.map((hotel) => (
-                  <option key={hotel.id} value={hotel.id}>
-                    {hotel.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Month Picker Section */}
-          <div className="border-t border-gray-100 pt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-              <CalendarDays size={16} />
-              Planning Month
+          
+          {/* Task Type Selector - Always First */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <Briefcase size={16} />
+              Task Type
               <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Required</span>
             </label>
-            <div className="flex flex-wrap gap-2">
-              {monthOptions.map((month) => (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {Object.values(TaskTypeEnum).map((type) => (
                 <button
-                  key={month.value}
-                  onClick={() => setSelectedMonth(month.value)}
+                  key={type}
+                  onClick={() => setTaskType(type)}
                   className={`
-                    relative px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200
-                    ${selectedMonth === month.value
-                      ? 'bg-gradient-to-r from-[#004A98] to-blue-600 text-white shadow-md scale-105 ring-2 ring-blue-300'
-                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:shadow-sm border border-gray-200'
+                    p-3 rounded-lg font-medium text-sm transition-all duration-200 border-2
+                    ${taskType === type
+                      ? 'bg-[#004A98] text-white border-[#004A98] shadow-md'
+                      : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
                     }
                   `}
                 >
-                  <span className="block">{month.label}</span>
-                  <span className={`block text-xs mt-0.5 ${selectedMonth === month.value ? 'text-blue-100' : 'text-gray-400'}`}>
-                    {month.year}
-                  </span>
-                  {selectedMonth === month.value && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></span>
-                  )}
+                  {type}
                 </button>
               ))}
             </div>
-            {selectedMonth && (
-              <p className="mt-3 text-sm text-green-600 flex items-center gap-1">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                Selected: <strong>{selectedMonth}</strong>
-              </p>
-            )}
           </div>
+
+          {/* Conditional Fields based on Task Type */}
+          {taskType && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                
+                {/* Task Owner - For Monthly Plan */}
+                {showOwnerAndHotel && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <Users size={16} />
+                      Task Owner (Sales Person)
+                    </label>
+                    <select
+                      className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
+                      onChange={(e) => {
+                        const user = users.find(u => u.id === e.target.value);
+                        setSelectedUser(user || null);
+                      }}
+                      value={selectedUser?.id || ''}
+                    >
+                      <option value="">-- Select Owner --</option>
+                      {users.map((user) => (
+                        <option key={user.id} value={user.id}>{user.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Portfolio Selector - For Portfolio Plan */}
+                {showPortfolioSelector && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <FolderKanban size={16} />
+                      Select Portfolio
+                    </label>
+                    <select
+                      className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
+                      onChange={(e) => {
+                        const portfolio = portfolios.find(p => p.name === e.target.value);
+                        setSelectedPortfolio(portfolio || null);
+                      }}
+                      value={selectedPortfolio?.name || ''}
+                    >
+                      <option value="">-- Select Portfolio --</option>
+                      <option value="Attica Org">Attica Org (All Hotels)</option>
+                      {brandOptions.map((brand) => (
+                        <option key={brand} value={brand}>{brand}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Related Hotel - For Monthly Plan */}
+                {showOwnerAndHotel && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <Building2 size={16} />
+                      Related Hotel (WhatId)
+                    </label>
+                    <select
+                      className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
+                      onChange={(e) => {
+                        const hotel = hotels.find(h => h.id === e.target.value);
+                        setSelectedHotel(hotel || null);
+                      }}
+                      value={selectedHotel?.id || ''}
+                    >
+                      <option value="">-- Select Hotel --</option>
+                      {hotels.map((hotel) => (
+                        <option key={hotel.id} value={hotel.id}>{hotel.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Month Picker - For Monthly Plan & Portfolio Plan */}
+              {showMonthPicker && (
+                <div className="border-t border-gray-100 pt-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                    <CalendarDays size={16} />
+                    Planning Month
+                    <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Required</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {monthOptions.map((month) => (
+                      <button
+                        key={month.value}
+                        onClick={() => setSelectedMonth(month.value)}
+                        className={`
+                          relative px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200
+                          ${selectedMonth === month.value
+                            ? 'bg-gradient-to-r from-[#004A98] to-blue-600 text-white shadow-md scale-105 ring-2 ring-blue-300'
+                            : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:shadow-sm border border-gray-200'
+                          }
+                        `}
+                      >
+                        <span className="block">{month.label}</span>
+                        <span className={`block text-xs mt-0.5 ${selectedMonth === month.value ? 'text-blue-100' : 'text-gray-400'}`}>
+                          {month.year}
+                        </span>
+                        {selectedMonth === month.value && (
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  {selectedMonth && (
+                    <p className="mt-3 text-sm text-green-600 flex items-center gap-1">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      Selected: <strong>{selectedMonth}</strong>
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Input Area */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">2. Add Plan Items</h2>
-          <QuickAdd 
-            selectedUser={selectedUser} 
-            selectedHotel={selectedHotel}
-            selectedMonth={selectedMonth}
-            subjects={subjects}
-            onAddTasks={handleAddTasks} 
-          />
-        </div>
+        {taskType && (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">2. Add Plan Items</h2>
+            <QuickAdd 
+              taskType={taskType}
+              selectedUser={selectedUser} 
+              selectedHotel={selectedHotel}
+              selectedMonth={selectedMonth}
+              selectedPortfolio={selectedPortfolio}
+              subjects={subjects}
+              users={users}
+              hotels={hotels}
+              hotelMappings={hotelMappings}
+              onAddTasks={handleAddTasks} 
+            />
+          </div>
+        )}
 
         {/* Review List */}
         <div>
