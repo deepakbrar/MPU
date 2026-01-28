@@ -45,15 +45,9 @@ useEffect(() => {
 
   const handleAdd = () => {
   // Validation based on task type
-  if (isMonthlyTask || isOwnerTask) {
-    if (!selectedUser || !selectedHotel || !subject || !dueDate) {
-      alert('Please fill all required fields (User, Hotel, Subject, Due Date)');
-      return;
-    }
-    
-    // For monthly plan, also require month
-    if (isMonthlyTask && !selectedMonth) {
-      alert('Please select a Planning Month');
+  if (isMonthlyTask) {
+    if (!selectedUser || !selectedHotel || !selectedMonth || !subject || !dueDate) {
+      alert('Please fill all required fields (User, Hotel, Month, Subject, Due Date)');
       return;
     }
     
@@ -66,14 +60,41 @@ useEffect(() => {
       subject,
       description: description || 'No description provided',
       dueDate,
-      month: selectedMonth || '',
+      month: selectedMonth,
       taskType: taskType,
       status: 'Not Started'
     };
     
     onAddTasks([newTask]);
-  } 
- else if (isPortfolioTask) {
+  }
+  else if (isOwnerTask) {
+    if (!selectedHotel || !dueDate) {
+      alert('Please select a Hotel and Due Date');
+      return;
+    }
+    
+    if (!selectedUser) {
+      alert('No user found in HotelMapping for the selected hotel. Please update HotelMapping sheet.');
+      return;
+    }
+    
+    const newTask: PlanTask = {
+      id: `task_${Date.now()}`,
+      ownerId: selectedUser.id,
+      ownerName: selectedUser.name,
+      whatId: selectedHotel.id,
+      whatName: selectedHotel.name,
+      subject: 'Owner Account Management/Owner Approval',
+      description: description || 'No description provided',
+      dueDate,
+      month: '',
+      taskType: taskType,
+      status: 'Not Started'
+    };
+    
+    onAddTasks([newTask]);
+  }
+  else if (isPortfolioTask) {
   if (!selectedPortfolio || !selectedMonth || !subject || !dueDate) {
     alert('Please fill all required fields (Portfolio, Month, Subject, Due Date)');
     return;
