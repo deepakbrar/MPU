@@ -73,29 +73,64 @@ useEffect(() => {
     
     onAddTasks([newTask]);
   } 
-  else if (isPortfolioTask) {
-    if (!selectedPortfolio || !selectedMonth || !subject || !dueDate) {
-      alert('Please fill all required fields (Portfolio, Month, Subject, Due Date)');
-      return;
-    }
+ else if (isPortfolioTask) {
+  if (!selectedPortfolio || !selectedMonth || !subject || !dueDate) {
+    alert('Please fill all required fields (Portfolio, Month, Subject, Due Date)');
+    return;
+  }
 
-    // Generate tasks for all hotels in the portfolio
-    let relevantMappings: HotelMapping[] = [];
-    
-    if (selectedPortfolio.name === 'Atica Org') {
-      // All hotels
-      relevantMappings = hotelMappings;
+  let newTasks: PlanTask[] = [];
+
+  if (selectedPortfolio.name === 'Atica Org') {
+    // Use HotelMapping if available, otherwise fall back to Hotels sheet
+    if (hotelMappings && hotelMappings.length > 0) {
+      newTasks = hotelMappings.map((mapping, index) => {
+        const hotel = hotels.find(h => h.id === mapping.propertyId);
+        const user = users.find(u => u.id === mapping.sfUserId);
+        
+        return {
+          id: `task_${Date.now()}_${index}`,
+          ownerId: mapping.sfUserId,
+          ownerName: user?.name || mapping.sfUserId,
+          whatId: mapping.propertyId,
+          whatName: hotel?.name || mapping.propertyId,
+          subject,
+          description: description || 'No description provided',
+          dueDate,
+          month: selectedMonth,
+          taskType: TaskTypeEnum.PortfolioPlan,
+          status: 'Not Started',
+          portfolio: selectedPortfolio.name
+        };
+      });
     } else {
-      // Filter by brand
-      relevantMappings = hotelMappings.filter(m => m.brand === selectedPortfolio.name);
+      // Fallback: Create one task per hotel from Hotels sheet
+      // User will be blank - they need to set up HotelMapping for proper user assignment
+      newTasks = hotels.map((hotel, index) => ({
+        id: `task_${Date.now()}_${index}`,
+        ownerId: '',
+        ownerName: '(No user assigned - setup HotelMapping)',
+        whatId: hotel.id,
+        whatName: hotel.name,
+        subject,
+        description: description || 'No description provided',
+        dueDate,
+        month: selectedMonth,
+        taskType: TaskTypeEnum.PortfolioPlan,
+        status: 'Not Started',
+        portfolio: selectedPortfolio.name
+      }));
     }
-
+  } else {
+    // Filter by brand
+    const relevantMappings = hotelMappings.filter(m => m.brand === selectedPortfolio.name);
+    
     if (relevantMappings.length === 0) {
-      alert('No hotels found for the selected portfolio. Please check HotelMapping sheet.');
+      alert(`No hotels found for brand "${selectedPortfolio.name}". Please check HotelMapping sheet.`);
       return;
     }
 
-    const newTasks: PlanTask[] = relevantMappings.map((mapping, index) => {
+    newTasks = relevantMappings.map((mapping, index) => {
       const hotel = hotels.find(h => h.id === mapping.propertyId);
       const user = users.find(u => u.id === mapping.sfUserId);
       
@@ -114,10 +149,20 @@ useEffect(() => {
         portfolio: selectedPortfolio.name
       };
     });
-
-    onAddTasks(newTasks);
-    alert(`✅ ${newTasks.length} tasks created for ${selectedPortfolio.name}`);
   }
+
+  if (newTasks.length === 0) {
+    alert('No tasks could be created. Please check your data.');
+    return;
+  }
+
+  onAddTasks(newTasks);
+  
+  const warningMsg = hotelMappings.length === 0 
+    ? `\n\n⚠️ Note: HotelMapping sheet is empty. Tasks created without user assignments.`
+    : '';
+  alert(`✅ ${newTasks.length} tasks created for ${selectedPortfolio.name}${warningMsg}`);
+}
   
   // Reset form
   if (!isOwnerTask) setSubject('');
