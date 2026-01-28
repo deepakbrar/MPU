@@ -100,6 +100,24 @@ const App: React.FC = () => {
     loadData();
   }, []);
 
+  // Auto-populate user from HotelMapping when hotel is selected for Owner tasks
+useEffect(() => {
+  if (isOwnerTask && selectedHotel && hotelMappings.length > 0) {
+    const mapping = hotelMappings.find(m => m.propertyId === selectedHotel.id);
+    if (mapping) {
+      const user = users.find(u => u.id === mapping.sfUserId);
+      if (user) {
+        setSelectedUser(user);
+      } else {
+        // User ID exists in mapping but not in Users sheet - create a placeholder
+        setSelectedUser({ id: mapping.sfUserId, name: mapping.sfUserId });
+      }
+    } else {
+      setSelectedUser(null);
+    }
+  }
+}, [selectedHotel, isOwnerTask, hotelMappings, users]);
+  
   const handleAddTasks = useCallback((newTasks: PlanTask[]) => {
     setTaskList((prev) => [...prev, ...newTasks]);
   }, []);
@@ -148,8 +166,10 @@ const App: React.FC = () => {
 const showMonthPicker = taskType === TaskTypeEnum.MonthlyPlan || taskType === TaskTypeEnum.PortfolioPlan;
 const showPortfolioSelector = taskType === TaskTypeEnum.PortfolioPlan;
 const isOwnerTask = taskType === TaskTypeEnum.OwnerExternal || taskType === TaskTypeEnum.OwnerInternal;
-// Show Owner and Hotel for Monthly Plan AND Owner tasks
-const showOwnerAndHotel = taskType === TaskTypeEnum.MonthlyPlan || isOwnerTask;;
+// Show Task Owner dropdown only for Monthly Plan
+const showTaskOwner = taskType === TaskTypeEnum.MonthlyPlan;
+// Show Hotel dropdown for Monthly Plan and Owner tasks
+const showHotelSelector = taskType === TaskTypeEnum.MonthlyPlan || isOwnerTask;
   
   // Get unique brands from hotelMappings for portfolio options
   const brandOptions = [...new Set(hotelMappings.map(m => m.brand).filter(Boolean))];
@@ -247,33 +267,148 @@ const showOwnerAndHotel = taskType === TaskTypeEnum.MonthlyPlan || isOwnerTask;;
             </div>
           </div>
 
-          {/* Conditional Fields based on Task Type */}
-          {taskType && (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                
-                {/* Task Owner - For Monthly Plan */}
-                {showOwnerAndHotel && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <Users size={16} />
-                      Task Owner (Sales Person)
-                    </label>
-                    <select
-                      className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
-                      onChange={(e) => {
-                        const user = users.find(u => u.id === e.target.value);
-                        setSelectedUser(user || null);
-                      }}
-                      value={selectedUser?.id || ''}
-                    >
-                      <option value="">-- Select Owner --</option>
-                      {users.map((user) => (
-                        <option key={user.id} value={user.id}>{user.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+         {/* Conditional Fields based on Task Type */}
+{taskType && (
+  <>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      
+      {/* Task Owner - Only for Monthly Plan */}
+      {showTaskOwner && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+            <Users size={16} />
+            Task Owner (Sales Person)
+          </label>
+          <select
+            className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
+            onChange={(e) => {
+              const user = users.find(u => u.id === e.target.value);
+              setSelectedUser(user || null);
+            }}
+            value={selectedUser?.id || ''}
+          >
+            <option value="">-- Select Owner --</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>{user.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Portfolio Selector - For Portfolio Plan */}
+      {showPortfolioSelector && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+            <FolderKanban size={16} />
+            Select Portfolio
+          </label>
+          <select
+            className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value) {
+                setSelectedPortfolio({ name: value });
+              } else {
+                setSelectedPortfolio(null);
+              }
+            }}
+            value={selectedPortfolio?.name || ''}
+          >
+            <option value="">-- Select Portfolio --</option>
+            <option value="Atica Org">Atica Org (All Hotels)</option>
+            {brandOptions.map((brand) => (
+              <option key={brand} value={brand}>{brand}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Related Hotel - For Monthly Plan and Owner tasks */}
+      {showHotelSelector && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+            <Building2 size={16} />
+            Related Hotel (WhatId)
+          </label>
+          <select
+            className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
+            onChange={(e) => {
+              const hotel = hotels.find(h => h.id === e.target.value);
+              setSelectedHotel(hotel || null);
+            }}
+            value={selectedHotel?.id || ''}
+          >
+            <option value="">-- Select Hotel --</option>
+            {hotels.map((hotel) => (
+              <option key={hotel.id} value={hotel.id}>{hotel.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Auto-populated Task Owner display for Owner tasks */}
+      {isOwnerTask && selectedHotel && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+            <Users size={16} />
+            Task Owner (Auto-assigned)
+          </label>
+          <input
+            type="text"
+            className="block w-full rounded-lg border-gray-300 shadow-sm bg-gray-100 sm:text-sm p-3 border"
+            value={selectedUser?.name || '(Not found in HotelMapping)'}
+            readOnly
+          />
+          {!selectedUser && (
+            <p className="text-xs text-amber-600 mt-1">
+              ⚠️ No user mapping found for this hotel in HotelMapping sheet
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+
+    {/* Month Picker - For Monthly Plan & Portfolio Plan */}
+    {showMonthPicker && (
+      <div className="border-t border-gray-100 pt-6">
+        <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+          <CalendarDays size={16} />
+          Planning Month
+          <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Required</span>
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {monthOptions.map((month) => (
+            <button
+              key={month.value}
+              onClick={() => setSelectedMonth(month.value)}
+              className={`
+                relative px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200
+                ${selectedMonth === month.value
+                  ? 'bg-gradient-to-r from-[#004A98] to-blue-600 text-white shadow-md scale-105 ring-2 ring-blue-300'
+                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:shadow-sm border border-gray-200'
+                }
+              `}
+            >
+              <span className="block">{month.label}</span>
+              <span className={`block text-xs mt-0.5 ${selectedMonth === month.value ? 'text-blue-100' : 'text-gray-400'}`}>
+                {month.year}
+              </span>
+              {selectedMonth === month.value && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></span>
+              )}
+            </button>
+          ))}
+        </div>
+        {selectedMonth && (
+          <p className="mt-3 text-sm text-green-600 flex items-center gap-1">
+            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+            Selected: <strong>{selectedMonth}</strong>
+          </p>
+        )}
+      </div>
+    )}
+  </>
+)}
 
                 {/* Portfolio Selector - For Portfolio Plan */}
                 {showPortfolioSelector && (
