@@ -276,27 +276,31 @@ const App: React.FC = () => {
 
                 {/* Portfolio Selector - For Portfolio Plan */}
                 {showPortfolioSelector && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <FolderKanban size={16} />
-                      Select Portfolio
-                    </label>
-                    <select
-                      className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
-                      onChange={(e) => {
-                        const portfolio = portfolios.find(p => p.name === e.target.value);
-                        setSelectedPortfolio(portfolio || null);
-                      }}
-                      value={selectedPortfolio?.name || ''}
-                    >
-                      <option value="">-- Select Portfolio --</option>
-                      <option value="Attica Org">Attica Org (All Hotels)</option>
-                      {brandOptions.map((brand) => (
-                        <option key={brand} value={brand}>{brand}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+      <FolderKanban size={16} />
+      Select Portfolio
+    </label>
+    <select
+      className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
+      onChange={(e) => {
+        const value = e.target.value;
+        if (value) {
+          setSelectedPortfolio({ name: value });
+        } else {
+          setSelectedPortfolio(null);
+        }
+      }}
+      value={selectedPortfolio?.name || ''}
+    >
+      <option value="">-- Select Portfolio --</option>
+      <option value="Atica Org">Atica Org (All Hotels)</option>
+      {brandOptions.map((brand) => (
+        <option key={brand} value={brand}>{brand}</option>
+      ))}
+    </select>
+  </div>
+)}
 
                 {/* Related Hotel - For Monthly Plan */}
                 {showOwnerAndHotel && (
