@@ -1,10 +1,8 @@
-export enum TaskSubject {
-  Call = 'Call',
-  Email = 'Email',
-  Meeting = 'Meeting',
-  Negotiation = 'Negotiation',
-  FollowUp = 'Follow-up',
-  SiteVisit = 'Site Visit'
+export enum TaskTypeEnum {
+  MonthlyPlan = 'Monthly Plan',
+  PortfolioPlan = 'Portfolio Plan',
+  OwnerExternal = 'Owner (External)',
+  OwnerInternal = 'Owner (Internal)',
 }
 
 export interface SalesPerson {
@@ -17,22 +15,33 @@ export interface Hotel {
   name: string;
 }
 
+export interface Portfolio {
+  name: string; // e.g., "Attica Org", "Brand X"
+}
+
+export interface HotelMapping {
+  propertyId: string;   // Hotel/Property ID
+  sfUserId: string;     // Sales Associate User ID
+  brand: string;        // Brand name
+}
+
 export interface PlanTask {
   id: string;
-  ownerId: string; // User ID
-  ownerName: string; // For display
-  whatId: string; // Hotel ID
-  whatName: string; // For display
-  subject: TaskSubject;
-  description: string; // Comments
-  dueDate: string; // YYYY-MM-DD
-  month: string; // Selected month (e.g., "January 2025")
-  taskType: 'Monthly Plan'; // Hardcoded
-  status: 'Not Started'; // Default SFDC status
+  ownerId: string;
+  ownerName: string;
+  whatId: string;
+  whatName: string;
+  subject: string;
+  description: string;
+  dueDate: string;
+  month: string;
+  taskType: TaskTypeEnum;
+  status: 'Not Started';
+  portfolio?: string; // For portfolio tasks
 }
 
 export interface AIGeneratedTask {
-  subject: TaskSubject;
+  subject: string;
   description: string;
   dueDate: string;
 }
