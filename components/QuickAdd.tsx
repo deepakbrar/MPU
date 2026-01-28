@@ -36,162 +36,159 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
   const isMonthlyTask = taskType === TaskTypeEnum.MonthlyPlan;
 
   // Auto-set subject for Owner tasks
-useEffect(() => {
-  if (isOwnerTask) {
-    setSubject('Owner Account Management/Owner Approval');
-  }
-  // Don't reset subject when switching away - let handleAdd reset it
-}, [isOwnerTask]);
+  useEffect(() => {
+    if (isOwnerTask) {
+      setSubject('Owner Account Management/Owner Approval');
+    }
+  }, [isOwnerTask]);
 
   const handleAdd = () => {
-  // Validation based on task type
-  if (isMonthlyTask) {
-    if (!selectedUser || !selectedHotel || !selectedMonth || !subject || !dueDate) {
-      alert('Please fill all required fields (User, Hotel, Month, Subject, Due Date)');
-      return;
-    }
-    
-    const newTask: PlanTask = {
-      id: `task_${Date.now()}`,
-      ownerId: selectedUser.id,
-      ownerName: selectedUser.name,
-      whatId: selectedHotel.id,
-      whatName: selectedHotel.name,
-      subject,
-      description: description || 'No description provided',
-      dueDate,
-      month: selectedMonth,
-      taskType: taskType,
-      status: 'Not Started'
-    };
-    
-    onAddTasks([newTask]);
-  }
-  else if (isOwnerTask) {
-    if (!selectedHotel || !dueDate) {
-      alert('Please select a Hotel and Due Date');
-      return;
-    }
-    
-    if (!selectedUser) {
-      alert('No user found in HotelMapping for the selected hotel. Please update HotelMapping sheet.');
-      return;
-    }
-    
-    const newTask: PlanTask = {
-      id: `task_${Date.now()}`,
-      ownerId: selectedUser.id,
-      ownerName: selectedUser.name,
-      whatId: selectedHotel.id,
-      whatName: selectedHotel.name,
-      subject: 'Owner Account Management/Owner Approval',
-      description: description || 'No description provided',
-      dueDate,
-      month: '',
-      taskType: taskType,
-      status: 'Not Started'
-    };
-    
-    onAddTasks([newTask]);
-  }
-  else if (isPortfolioTask) {
-  if (!selectedPortfolio || !selectedMonth || !subject || !dueDate) {
-    alert('Please fill all required fields (Portfolio, Month, Subject, Due Date)');
-    return;
-  }
-
-  let newTasks: PlanTask[] = [];
-
-  if (selectedPortfolio.name === 'Atica Org') {
-    // Use HotelMapping if available, otherwise fall back to Hotels sheet
-    if (hotelMappings && hotelMappings.length > 0) {
-      newTasks = hotelMappings.map((mapping, index) => {
-        const hotel = hotels.find(h => h.id === mapping.propertyId);
-        const user = users.find(u => u.id === mapping.sfUserId);
-        
-        return {
-          id: `task_${Date.now()}_${index}`,
-          ownerId: mapping.sfUserId,
-          ownerName: user?.name || mapping.sfUserId,
-          whatId: mapping.propertyId,
-          whatName: hotel?.name || mapping.propertyId,
-          subject,
-          description: description || 'No description provided',
-          dueDate,
-          month: selectedMonth,
-          taskType: TaskTypeEnum.PortfolioPlan,
-          status: 'Not Started',
-          portfolio: selectedPortfolio.name
-        };
-      });
-    } else {
-      // Fallback: Create one task per hotel from Hotels sheet
-      // User will be blank - they need to set up HotelMapping for proper user assignment
-      newTasks = hotels.map((hotel, index) => ({
-        id: `task_${Date.now()}_${index}`,
-        ownerId: '',
-        ownerName: '(No user assigned - setup HotelMapping)',
-        whatId: hotel.id,
-        whatName: hotel.name,
-        subject,
-        description: description || 'No description provided',
-        dueDate,
-        month: selectedMonth,
-        taskType: TaskTypeEnum.PortfolioPlan,
-        status: 'Not Started',
-        portfolio: selectedPortfolio.name
-      }));
-    }
-  } else {
-    // Filter by brand
-    const relevantMappings = hotelMappings.filter(m => m.brand === selectedPortfolio.name);
-    
-    if (relevantMappings.length === 0) {
-      alert(`No hotels found for brand "${selectedPortfolio.name}". Please check HotelMapping sheet.`);
-      return;
-    }
-
-    newTasks = relevantMappings.map((mapping, index) => {
-      const hotel = hotels.find(h => h.id === mapping.propertyId);
-      const user = users.find(u => u.id === mapping.sfUserId);
+    // Validation based on task type
+    if (isMonthlyTask) {
+      if (!selectedUser || !selectedHotel || !selectedMonth || !subject || !dueDate) {
+        alert('Please fill all required fields (User, Hotel, Month, Subject, Due Date)');
+        return;
+      }
       
-      return {
-        id: `task_${Date.now()}_${index}`,
-        ownerId: mapping.sfUserId,
-        ownerName: user?.name || mapping.sfUserId,
-        whatId: mapping.propertyId,
-        whatName: hotel?.name || mapping.propertyId,
+      const newTask: PlanTask = {
+        id: `task_${Date.now()}`,
+        ownerId: selectedUser.id,
+        ownerName: selectedUser.name,
+        whatId: selectedHotel.id,
+        whatName: selectedHotel.name,
         subject,
         description: description || 'No description provided',
         dueDate,
         month: selectedMonth,
-        taskType: TaskTypeEnum.PortfolioPlan,
-        status: 'Not Started',
-        portfolio: selectedPortfolio.name
+        taskType: taskType,
+        status: 'Not Started'
       };
-    });
-  }
+      
+      onAddTasks([newTask]);
+    }
+    else if (isOwnerTask) {
+      if (!selectedHotel || !dueDate) {
+        alert('Please select a Hotel and Due Date');
+        return;
+      }
+      
+      if (!selectedUser) {
+        alert('No user found in HotelMapping for the selected hotel. Please update HotelMapping sheet.');
+        return;
+      }
+      
+      const newTask: PlanTask = {
+        id: `task_${Date.now()}`,
+        ownerId: selectedUser.id,
+        ownerName: selectedUser.name,
+        whatId: selectedHotel.id,
+        whatName: selectedHotel.name,
+        subject: 'Owner Account Management/Owner Approval',
+        description: description || 'No description provided',
+        dueDate,
+        month: '',
+        taskType: taskType,
+        status: 'Not Started'
+      };
+      
+      onAddTasks([newTask]);
+    }
+    else if (isPortfolioTask) {
+      if (!selectedPortfolio || !selectedMonth || !subject || !dueDate) {
+        alert('Please fill all required fields (Portfolio, Month, Subject, Due Date)');
+        return;
+      }
 
-  if (newTasks.length === 0) {
-    alert('No tasks could be created. Please check your data.');
-    return;
-  }
+      let newTasks: PlanTask[] = [];
 
-  onAddTasks(newTasks);
-  
-  const warningMsg = hotelMappings.length === 0 
-    ? `\n\n⚠️ Note: HotelMapping sheet is empty. Tasks created without user assignments.`
-    : '';
-  alert(`✅ ${newTasks.length} tasks created for ${selectedPortfolio.name}${warningMsg}`);
-}
-  
-  // Reset form
-  if (!isOwnerTask) setSubject('');
-  setDescription('');
-  setDueDate('');
-};
+      if (selectedPortfolio.name === 'Atica Org') {
+        // Use HotelMapping if available, otherwise fall back to Hotels sheet
+        if (hotelMappings && hotelMappings.length > 0) {
+          newTasks = hotelMappings.map((mapping, index) => {
+            const hotel = hotels.find(h => h.id === mapping.propertyId);
+            const user = users.find(u => u.id === mapping.sfUserId);
+            
+            return {
+              id: `task_${Date.now()}_${index}`,
+              ownerId: mapping.sfUserId,
+              ownerName: user?.name || mapping.sfUserId,
+              whatId: mapping.propertyId,
+              whatName: hotel?.name || mapping.propertyId,
+              subject,
+              description: description || 'No description provided',
+              dueDate,
+              month: selectedMonth,
+              taskType: TaskTypeEnum.PortfolioPlan,
+              status: 'Not Started' as const,
+              portfolio: selectedPortfolio.name
+            };
+          });
+        } else {
+          // Fallback: Create one task per hotel from Hotels sheet
+          newTasks = hotels.map((hotel, index) => ({
+            id: `task_${Date.now()}_${index}`,
+            ownerId: '',
+            ownerName: '(No user assigned - setup HotelMapping)',
+            whatId: hotel.id,
+            whatName: hotel.name,
+            subject,
+            description: description || 'No description provided',
+            dueDate,
+            month: selectedMonth,
+            taskType: TaskTypeEnum.PortfolioPlan,
+            status: 'Not Started' as const,
+            portfolio: selectedPortfolio.name
+          }));
+        }
+      } else {
+        // Filter by brand
+        const relevantMappings = hotelMappings.filter(m => m.brand === selectedPortfolio.name);
+        
+        if (relevantMappings.length === 0) {
+          alert(`No hotels found for brand "${selectedPortfolio.name}". Please check HotelMapping sheet.`);
+          return;
+        }
 
-     
+        newTasks = relevantMappings.map((mapping, index) => {
+          const hotel = hotels.find(h => h.id === mapping.propertyId);
+          const user = users.find(u => u.id === mapping.sfUserId);
+          
+          return {
+            id: `task_${Date.now()}_${index}`,
+            ownerId: mapping.sfUserId,
+            ownerName: user?.name || mapping.sfUserId,
+            whatId: mapping.propertyId,
+            whatName: hotel?.name || mapping.propertyId,
+            subject,
+            description: description || 'No description provided',
+            dueDate,
+            month: selectedMonth,
+            taskType: TaskTypeEnum.PortfolioPlan,
+            status: 'Not Started' as const,
+            portfolio: selectedPortfolio.name
+          };
+        });
+      }
+
+      if (newTasks.length === 0) {
+        alert('No tasks could be created. Please check your data.');
+        return;
+      }
+
+      onAddTasks(newTasks);
+      
+      const warningMsg = hotelMappings.length === 0 
+        ? `\n\n⚠️ Note: HotelMapping sheet is empty. Tasks created without user assignments.`
+        : '';
+      alert(`✅ ${newTasks.length} tasks created for ${selectedPortfolio.name}${warningMsg}`);
+    }
+    
+    // Reset form
+    if (!isOwnerTask) setSubject('');
+    setDescription('');
+    setDueDate('');
+  };
+
   const availableSubjects = subjects || [];
 
   return (
