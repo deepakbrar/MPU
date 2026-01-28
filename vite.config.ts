@@ -4,7 +4,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/Monthly-Plan-Uploader/', // Add this line - use your repo name
+  base: '/MPU/', // Add this line - use your repo name
   server: {
     port: 3000,
     host: true,
