@@ -11,10 +11,10 @@ export const HeroHeader = () => {
             alt="Atica Logo" 
             className="h-16 w-auto bg-white rounded p-1"
           />
-          <h1 className="text-3xl font-bold">Sales Monthly Plan</h1>
+          <h1 className="text-3xl font-bold">Unified Sales Plan Uploader</h1>
         </div>
         <p className="text-blue-100 ml-16">
-          Create and Upload Monthly Plan tasks
+          Create and Upload Sales Plan tasks
         </p>
       </div>
     </header>
