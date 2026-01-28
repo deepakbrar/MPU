@@ -170,42 +170,7 @@ useEffect(() => {
   setDueDate('');
 };
 
-      onAddTasks(newTasks);
-      alert(`✅ ${newTasks.length} tasks created for ${selectedPortfolio.name}`);
-    }
-    else if (isOwnerTask) {
-      if (!dueDate) {
-        alert('Please select a due date');
-        return;
-      }
-
-      // For Owner tasks, we need to select a hotel still (or handle differently)
-      // Based on your description, it seems like Owner tasks just need description + due date
-      // But we still need ownerId and whatId for SFDC. Let me add a simplified version:
-      
-      const newTask: PlanTask = {
-        id: `task_${Date.now()}`,
-        ownerId: '', // Will need to be set somehow - maybe add a user selector for owner tasks too
-        ownerName: 'Owner Task',
-        whatId: '',
-        whatName: 'Owner Task',
-        subject: 'Owner Account Management/Owner Approval',
-        description: description || 'No description provided',
-        dueDate,
-        month: '',
-        taskType: taskType,
-        status: 'Not Started'
-      };
-
-      onAddTasks([newTask]);
-    }
-    
-    // Reset form
-    if (!isOwnerTask) setSubject('');
-    setDescription('');
-    setDueDate('');
-  };
-
+     
   const availableSubjects = subjects || [];
 
   return (
